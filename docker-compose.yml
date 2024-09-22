@@ -2,8 +2,16 @@ services:
   db:
     image: postgres:14.3-alpine3.15
     ports:
-      - "5432:5432"
+      - "5431:5432"
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB}  
+
+  pg_admin:
+    image: dpage/pgadmin4  
+    environment:
+      PGADMIN_DEFAULT_EMAIL: user@ru.ru
+      PGADMIN_DEFAULT_PASSWORD: user
+    ports:
+      - 80:80  

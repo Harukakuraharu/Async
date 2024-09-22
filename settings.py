@@ -7,7 +7,7 @@ POSTGRES_PASSWORD = os.getenv("POSTGRES_PASSWORD", "user")
 POSTGRES_USER = os.getenv("POSTGRES_USER", "user")
 POSTGRES_DB = os.getenv("POSTGRES_DB", "db")
 POSTGRES_HOST = os.getenv("POSTGRES_HOST", "localhost")
-POSTGRES_PORT = os.getenv("POSTGRES_PORT", "5432")
+POSTGRES_PORT = os.getenv("POSTGRES_PORT", "5431")
 
 DSN = (f"postgresql+asyncpg://{POSTGRES_USER}:"
        f"{POSTGRES_PASSWORD}@{POSTGRES_HOST}:"
