@@ -41,44 +41,50 @@ async def get_urls(urls: Union[list | str], key: str, session: ClientSession) ->
     return ""
 
 
-async def insert_to_db(characters: list[dict]) -> None:
+async def insert_to_db(characters: list[dict], session: ClientSession) -> None:
     """Insert data for database"""
     async with Session() as db_session:
-        async with ClientSession() as session:
-            for data in characters:
-                if data.get("detail") == "Not found":
-                    break
-                character = Character(
-                    birth_year=data.get("birth_year"),
-                    eye_color=data.get("eye_color"),
-                    films=await get_urls(data.get("films"), "title", session),
-                    gender=data.get("gender"),
-                    hair_color=data.get("hair_color"),
-                    height=data.get("height"),
-                    homeworld=await get_urls(data.get("homeworld"), "name", session),
-                    mass=data.get("mass"),
-                    name=data.get("name"),
-                    skin_color=data.get("skin_color"),
-                    species=await get_urls(data.get("species"), "name", session),
-                    starships=await get_urls(data.get("starships"), "name", session),
-                    vehicles=await get_urls(data.get("vehicles"), "name", session),
-                )
-                db_session.add(character)
-                await db_session.commit()
+        for data in characters:
+            if data.get("detail") == "Not found":
+                continue
+            url = data.get("url")
+            if url:
+                id_character = int(url.rstrip("/").split("/")[-1])
+            else:
+                continue
+            character = Character(
+                id=id_character,
+                birth_year=data.get("birth_year") or "",
+                eye_color=data.get("eye_color") or "",
+                films=await get_urls(data.get("films"), "title", session) or "",
+                gender=data.get("gender") or "",
+                hair_color=data.get("hair_color") or "",
+                height=data.get("height") or "",
+                homeworld=await get_urls(data.get("homeworld"), "name", session) or "",
+                mass=data.get("mass") or "",
+                name=data.get("name") or "",
+                skin_color=data.get("skin_color") or "",
+                species=await get_urls(data.get("species"), "name", session) or "",
+                starships=await get_urls(data.get("starships"), "name", session) or "",
+                vehicles=await get_urls(data.get("vehicles"), "name", session) or "",
+            )
+            db_session.add(character)
+            await db_session.commit()
 
 
 async def main():
     await init_db()
     session = ClientSession()
+    # tasks = []
     for item_chunk in chunked(range(1, CHARACTER_COUNT + 1), MAX_CHUNK):
         coros = [get_character(character_id, session) for character_id in item_chunk]
         result = await asyncio.gather(*coros)
-        asyncio.create_task(insert_to_db(result))
-    await session.close()
-
+        task = asyncio.create_task(insert_to_db(result, session))
+        # tasks.append(task)
+    # await asyncio.gather(*tasks)    
     all_tasks_set = asyncio.all_tasks() - {asyncio.current_task()}
     await asyncio.gather(*all_tasks_set)
-
+    await session.close()
 
 if __name__ == "__main__":
     start = datetime.now()
