@@ -25,9 +25,9 @@ async def get_character(character_id: str, session: ClientSession) -> dict:
 
 async def read_url(url: str, key: str, session: ClientSession) -> str:
     """Read the URL to fill in information about heroes"""
-    async with session.get(f"{url}") as response:
-        data = await response.json()
-        return data[key]
+    response = await session.get(f"{url}")
+    data = await response.json()
+    return data[key]
 
 
 async def get_urls(urls: Union[list | str], key: str, session: ClientSession) -> str:
@@ -44,6 +44,7 @@ async def get_urls(urls: Union[list | str], key: str, session: ClientSession) ->
 async def insert_to_db(characters: list[dict], session: ClientSession) -> None:
     """Insert data for database"""
     async with Session() as db_session:
+        character_list = []
         for data in characters:
             if data.get("detail") == "Not found":
                 continue
@@ -68,20 +69,18 @@ async def insert_to_db(characters: list[dict], session: ClientSession) -> None:
                 starships=await get_urls(data.get("starships"), "name", session) or "",
                 vehicles=await get_urls(data.get("vehicles"), "name", session) or "",
             )
-            db_session.add(character)
-            await db_session.commit()
+            character_list.append(character)
+        db_session.add_all(character_list)
+        await db_session.commit()
 
 
 async def main():
     await init_db()
     session = ClientSession()
-    # tasks = []
     for item_chunk in chunked(range(1, CHARACTER_COUNT + 1), MAX_CHUNK):
         coros = [get_character(character_id, session) for character_id in item_chunk]
         result = await asyncio.gather(*coros)
-        task = asyncio.create_task(insert_to_db(result, session))
-        # tasks.append(task)
-    # await asyncio.gather(*tasks)    
+        asyncio.create_task(insert_to_db(result, session))   
     all_tasks_set = asyncio.all_tasks() - {asyncio.current_task()}
     await asyncio.gather(*all_tasks_set)
     await session.close()
